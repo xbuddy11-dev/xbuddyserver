@@ -2,9 +2,13 @@ import { motion, AnimatePresence } from 'framer-motion'
 import PaymentProofForm from './PaymentProofForm'
 
 export default function PaymentModal({ total, orderMeta, onSuccess, onClose }) {
-  function openUpiApp() {
-    // Try to open UPI app — works on Android/iOS mobile
-    window.location.href = 'upi://pay'
+  function openCamera() {
+    // Open phone camera for QR scanning
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.capture = 'environment'
+    input.click()
   }
   return (
     <AnimatePresence>
@@ -75,12 +79,12 @@ export default function PaymentModal({ total, orderMeta, onSuccess, onClose }) {
             Pay using PhonePe · GPay · Paytm · BHIM
           </p>
 
-          {/* Open UPI App button — works on mobile */}
+          {/* Open Camera button */}
           <button
-            onClick={openUpiApp}
+            onClick={openCamera}
             className="w-full py-3 mb-3 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold text-sm transition flex items-center justify-center gap-2"
           >
-            📱 Open UPI App to Pay
+            📷 Open Camera to Scan & Pay
           </button>
 
           {/* Payment proof form — shown below QR */}
