@@ -28,7 +28,7 @@ function saveScreenshotLocally(orderId, screenshotBase64) {
   }
 }
 
-const BOOTH_PIN = '2580'  // Change this to your own PIN
+const { boothPin: BOOTH_PIN } = require('../config')
 
 // POST /booth-login — validate shopkeeper PIN
 app.post('/booth-login', (req, res) => {

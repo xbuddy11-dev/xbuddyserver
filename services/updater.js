@@ -1,8 +1,8 @@
 const { google } = require('googleapis')
 const logger = require('../utils/logger')
+const { sheetId: SPREADSHEET_ID } = require('../config')
 
-const SPREADSHEET_ID = '1ylqiGtvtYfPtCOvKMzOLVETZxiNQ4IKAFaTmKBHH6Sk'
-const SHEET_NAME     = 'Sheet1'
+const SHEET_NAME = 'Sheet1'
 
 function getAuth() {
   return new google.auth.GoogleAuth({

@@ -1,9 +1,8 @@
 const { google } = require('googleapis')
 const logger = require('../utils/logger')
+const { sheetId: SPREADSHEET_ID, gasUrl: GAS_URL } = require('../config')
 
-const SPREADSHEET_ID = '1ylqiGtvtYfPtCOvKMzOLVETZxiNQ4IKAFaTmKBHH6Sk'
-const SHEET_NAME     = 'Sheet1'
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwDcsGng774iNQ9zNdBt-bdkIFGSg7_lvr5MRvIzzqE6s9bGex7ej1U1WChrY-KgOM/exec'
+const SHEET_NAME = 'Sheet1'
 
 const COL = {
   ORDER_ID:       0,
