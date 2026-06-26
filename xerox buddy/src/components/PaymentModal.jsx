@@ -3,7 +3,7 @@ import PaymentProofForm from './PaymentProofForm'
 
 export default function PaymentModal({ total, orderMeta, onSuccess, onClose }) {
   function openUpiApp() {
-    window.location.href = `upi://pay?pa=9100280705@ybl&pn=XBuddy&cu=INR`
+    window.location.href = 'upi://'
   }
   return (
     <AnimatePresence>
