@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import Hero from './components/Hero'
 import UploadSection from './components/UploadSection'
@@ -7,6 +7,10 @@ import PriceCard from './components/PriceCard'
 import PaymentModal from './components/PaymentModal'
 import PrintStatus from './components/PrintStatus'
 import AcademicToolkit from './components/AcademicToolkit'
+import Login from './components/Login'
+import ShopSetup from './components/ShopSetup'
+import { auth, getShopConfig } from './utils/firebase'
+import { onAuthStateChanged } from 'firebase/auth'
 import { calcTotal } from './utils/pricing'
 import * as pdfjsLib from 'pdfjs-dist'
 // Use the same local bundled worker as UploadSection — avoids CDN version mismatch
@@ -33,7 +37,19 @@ export default function App() {
   const [settings, setSettings]   = useState(DEFAULT_SETTINGS)
   const [showPayment, setShowPayment] = useState(false)
   const [orderId, setOrderId]     = useState(null)
+  const [user, setUser]           = useState(undefined)
+  const [shopConfig, setShopConfig] = useState(null)
   const settingsRef = useRef(null)
+
+  useEffect(() => {
+    return onAuthStateChanged(auth, async (u) => {
+      setUser(u)
+      if (u) {
+        const config = await getShopConfig(u.uid)
+        setShopConfig(config)
+      }
+    })
+  }, [])
 
   const total = fileInfo
     ? calcTotal({
@@ -98,6 +114,10 @@ export default function App() {
 
   const isAdminRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')
   if (isAdminRoute) return <AdminDashboard />
+
+  if (user === undefined) return <div className="min-h-screen bg-gray-950 flex items-center justify-center"><p className="text-gray-500">Loading...</p></div>
+  if (!user) return <Login onLogin={setUser} />
+  if (!shopConfig) return <ShopSetup user={user} onComplete={async () => { const c = await getShopConfig(user.uid); setShopConfig(c) }} />
 
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
