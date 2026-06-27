@@ -158,7 +158,7 @@ export default function AdminDashboard({ user, onBack }) {
         boothPin: shopConfig.boothPin,
       }, null, 2))
 
-      // START.bat
+      // START.bat - uses node instead of exe
       zip.file('START.bat', `@echo off
 title X Buddy Print Agent
 color 0A
@@ -168,18 +168,23 @@ echo  ================================
 echo.
 cd /d "%~dp0"
 start "" /min cloudflared.exe tunnel --url http://localhost:3001
-XBuddy-PrintAgent.exe
+node server.js
 pause
 `)
 
-      // Fetch and include the exe and cloudflared as binary
-      const [agentRes, cloudflaredRes] = await Promise.all([
-        fetch('/XBuddy-PrintAgent.exe'),
-        fetch('/cloudflared.exe'),
-      ])
+      // server.js entry point
+      zip.file('README.txt', `X Buddy Shop Package
+====================
+Setup Steps:
+1. Install Node.js from https://nodejs.org
+2. Run: npm install (first time only)
+3. Double click START.bat every day
 
-      if (agentRes.ok) zip.file('XBuddy-PrintAgent.exe', await agentRes.arrayBuffer())
-      if (cloudflaredRes.ok) zip.file('cloudflared.exe', await cloudflaredRes.arrayBuffer())
+Files:
+- START.bat        : Start the print agent
+- shop-config.json : Your shop settings
+- credentials.json : Google service account key (get from your admin)
+`)
 
       const blob = await zip.generateAsync({ type: 'blob' })
       saveAs(blob, `XBuddy-${shopConfig.shopName.replace(/\s+/g, '-')}-Package.zip`)
