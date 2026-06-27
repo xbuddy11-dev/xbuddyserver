@@ -38,6 +38,8 @@ import {
   fetchHealthStatus,
 } from '../utils/api'
 import { getShopConfig } from '../utils/firebase'
+import JSZip from 'jszip'
+import { saveAs } from 'file-saver'
 
 const STATUS_STYLES = {
   Waiting: 'bg-amber-500/10 text-amber-300',
@@ -126,15 +128,66 @@ export default function AdminDashboard({ user, onBack }) {
   const [isAuthorized, setIsAuthorized] = useState(!!user)
   const [authError, setAuthError] = useState('')
   const [boothPin, setBoothPin] = useState(null)
+  const [shopConfig, setShopConfig] = useState(null)
+  const [downloading, setDownloading] = useState(false)
 
   useEffect(() => {
     if (user) {
       setIsAuthorized(true)
       getShopConfig(user.uid).then(config => {
-        if (config?.boothPin) setBoothPin(config.boothPin)
+        if (config) {
+          setShopConfig(config)
+          setBoothPin(config.boothPin)
+        }
       })
     }
   }, [user])
+
+  async function handleDownloadPackage() {
+    if (!shopConfig) return
+    setDownloading(true)
+    try {
+      const zip = new JSZip()
+
+      // shop-config.json with owner's own data
+      zip.file('shop-config.json', JSON.stringify({
+        shopName: shopConfig.shopName,
+        shopId:   shopConfig.shopId || 'XB-' + user.uid.slice(0, 6).toUpperCase(),
+        sheetId:  shopConfig.sheetId,
+        gasUrl:   shopConfig.gasUrl,
+        boothPin: shopConfig.boothPin,
+      }, null, 2))
+
+      // START.bat
+      zip.file('START.bat', `@echo off
+title X Buddy Print Agent
+color 0A
+echo.
+echo  X Buddy Print Agent Starting...
+echo  ================================
+echo.
+cd /d "%~dp0"
+start "" /min cloudflared.exe tunnel --url http://localhost:3001
+XBuddy-PrintAgent.exe
+pause
+`)
+
+      // Fetch and include the exe and cloudflared as binary
+      const [agentRes, cloudflaredRes] = await Promise.all([
+        fetch('/XBuddy-PrintAgent.exe'),
+        fetch('/cloudflared.exe'),
+      ])
+
+      if (agentRes.ok) zip.file('XBuddy-PrintAgent.exe', await agentRes.arrayBuffer())
+      if (cloudflaredRes.ok) zip.file('cloudflared.exe', await cloudflaredRes.arrayBuffer())
+
+      const blob = await zip.generateAsync({ type: 'blob' })
+      saveAs(blob, `XBuddy-${shopConfig.shopName.replace(/\s+/g, '-')}-Package.zip`)
+    } catch (e) {
+      alert('Download failed: ' + e.message)
+    }
+    setDownloading(false)
+  }
 
   const stats = useMemo(() => {
     const total = orders.length
@@ -362,6 +415,10 @@ export default function AdminDashboard({ user, onBack }) {
             )}
           </div>
           <div className="flex flex-wrap gap-3">
+            <button onClick={handleDownloadPackage} disabled={downloading || !shopConfig}
+              className="inline-flex items-center gap-2 rounded-2xl border border-purple-500/30 bg-purple-500/10 px-4 py-2 text-sm text-purple-300 transition hover:bg-purple-500/20 disabled:opacity-50">
+              {downloading ? '⏳ Preparing...' : '📦 Download My Shop Package'}
+            </button>
             <button onClick={onBack} className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-100 transition hover:border-purple-400/30 hover:bg-white/10">
               <RefreshCcw className="h-4 w-4 text-purple-300" />
               Back to User App
