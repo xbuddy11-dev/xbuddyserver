@@ -12,7 +12,8 @@
       "cloudflared.exe",
       "credentials.json",
       "services/**",
-      "utils/**"
+      "utils/**",
+      "node_modules/pdf-to-printer/dist/**"
     ],
     "targets": [
       "node18-win-x64"

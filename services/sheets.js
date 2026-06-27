@@ -21,9 +21,11 @@ const COL = {
   RELEASE_STATUS: 13,
 }
 
+const BASE_DIR = path.dirname(process.pkg ? process.execPath : path.join(__dirname, '..'))
+
 function getAuth() {
   return new google.auth.GoogleAuth({
-    keyFile: './credentials.json',
+    keyFile: path.join(BASE_DIR, 'credentials.json'),
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   })
 }
