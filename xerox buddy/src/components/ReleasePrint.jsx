@@ -1,12 +1,24 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { boothLogin, validateAndRelease } from '../utils/api'
+import { validateAndRelease } from '../utils/api'
+import { db } from '../utils/firebase'
+import { collection, query, where, getDocs } from 'firebase/firestore'
 
 const SESSION_KEY     = 'xbuddy_booth_auth'
-const INACTIVITY_MS   = 5 * 60 * 1000  // 5 minutes
+const INACTIVITY_MS   = 5 * 60 * 1000
 
 function isAuthenticated() {
   return sessionStorage.getItem(SESSION_KEY) === 'true'
+}
+
+async function verifyPin(pin) {
+  try {
+    const q = query(collection(db, 'shops'), where('boothPin', '==', pin))
+    const snap = await getDocs(q)
+    return !snap.empty
+  } catch {
+    return false
+  }
 }
 
 // ── PIN Login Screen ──────────────────────────────────────────────────────────
@@ -23,12 +35,12 @@ function BoothLogin({ onSuccess }) {
     if (pin.length < 4) return
     setLoading(true)
     setError('')
-    const res = await boothLogin(pin)
-    if (res.success) {
+    const valid = await verifyPin(pin)
+    if (valid) {
       sessionStorage.setItem(SESSION_KEY, 'true')
       onSuccess()
     } else {
-      setError(res.error || 'Wrong PIN')
+      setError('Wrong PIN')
       setPin('')
       inputRef.current?.focus()
     }
