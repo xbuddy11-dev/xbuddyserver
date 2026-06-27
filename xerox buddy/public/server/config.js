@@ -1,7 +1,7 @@
 const fs   = require('fs')
 const path = require('path')
 
-const BASE_DIR = path.dirname(process.pkg ? process.execPath : path.join(__dirname, '..'))
+const BASE_DIR = path.dirname(require.main ? require.main.filename : __filename)
 const CONFIG_CACHE = path.join(BASE_DIR, 'shop-config.json')
 
 if (!fs.existsSync(CONFIG_CACHE)) {
