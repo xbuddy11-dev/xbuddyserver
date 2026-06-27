@@ -149,7 +149,6 @@ export default function AdminDashboard({ user, onBack }) {
     try {
       const zip = new JSZip()
 
-      // shop-config.json with owner's own data
       zip.file('shop-config.json', JSON.stringify({
         shopName: shopConfig.shopName,
         shopId:   shopConfig.shopId || 'XB-' + user.uid.slice(0, 6).toUpperCase(),
@@ -158,35 +157,8 @@ export default function AdminDashboard({ user, onBack }) {
         boothPin: shopConfig.boothPin,
       }, null, 2))
 
-      // START.bat
-      zip.file('START.bat', `@echo off
-title X Buddy Print Agent
-color 0A
-echo.
-echo  X Buddy Print Agent Starting...
-echo  ================================
-echo.
-cd /d "%~dp0"
-
-node --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo  [!] Node.js not found! Please run SETUP.bat first
-    pause
-    exit
-)
-
-if not exist "node_modules" (
-    echo  [..] Installing dependencies...
-    call npm install
-)
-
-start "" /min cmd /c "cloudflared.exe tunnel --url http://localhost:3001 > tunnel.log 2>&1"
-node index.js
-pause
-`)
-
-      // SETUP.bat
-      zip.file('SETUP.bat', `@echo off
+      zip.file('SETUP.bat',
+`@echo off
 title X Buddy Setup
 color 0A
 echo.
@@ -208,35 +180,47 @@ call npm install
 echo.
 echo  Setup Complete! Now double-click START.bat
 echo.
-pause
-`)
+pause`)
 
-      // README
-      zip.file('README.txt', `X Buddy Shop Package - ${shopConfig.shopName}
-${'='.repeat(40)}
+      zip.file('START.bat',
+`@echo off
+title X Buddy Print Agent
+color 0A
+echo.
+echo  X Buddy Print Agent Starting...
+echo  ================================
+echo.
+cd /d "%~dp0"
+if not exist "node_modules" call npm install
+start "" /min cmd /c "cloudflared.exe tunnel --url http://localhost:3001 > tunnel.log 2>&1"
+node index.js
+pause`)
 
+      zip.file('README.txt',
+`X Buddy Shop Package - ${shopConfig.shopName}
+========================================
 FIRST TIME SETUP:
-1. Put credentials.json in this folder (get from admin)
-2. Double-click SETUP.bat (installs Node.js)
+1. Copy credentials.json into this folder
+2. Double-click SETUP.bat
 3. Double-click START.bat
 
-EVERY DAY:
-- Just double-click START.bat
+EVERY DAY: Just double-click START.bat`)
 
-SUPPORT: Contact X Buddy support
-`)
-
-      // Fetch cloudflared.exe
       const cloudflaredRes = await fetch('/cloudflared.exe')
       if (cloudflaredRes.ok) zip.file('cloudflared.exe', await cloudflaredRes.arrayBuffer())
 
+      // Fetch server source files
+      const serverFiles = ['index.js', 'config.js', 'package.json',
+        'services/downloader.js', 'services/driveUploader.js', 'services/localServer.js',
+        'services/printer.js', 'services/sheets.js', 'services/tunnel.js', 'services/updater.js',
+        'utils/logger.js']
+      for (const f of serverFiles) {
+        const res = await fetch(`/server/${f}`)
+        if (res.ok) zip.file(f, await res.text())
+      }
+
       const blob = await zip.generateAsync({ type: 'blob' })
       saveAs(blob, `XBuddy-${shopConfig.shopName.replace(/\s+/g, '-')}-Package.zip`)
-    } catch (e) {
-      alert('Download failed: ' + e.message)
-    }
-    setDownloading(false)
-  }
     } catch (e) {
       alert('Download failed: ' + e.message)
     }
