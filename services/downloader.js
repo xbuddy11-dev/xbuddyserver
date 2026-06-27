@@ -3,7 +3,8 @@ const fs    = require('fs')
 const path  = require('path')
 const logger = require('../utils/logger')
 
-const DOWNLOADS_DIR = path.join(__dirname, '..', 'downloads')
+const BASE_DIR      = path.dirname(process.pkg ? process.execPath : path.join(__dirname, '..'))
+const DOWNLOADS_DIR = path.join(BASE_DIR, 'downloads')
 
 // Ensure downloads folder exists
 if (!fs.existsSync(DOWNLOADS_DIR)) {

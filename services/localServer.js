@@ -12,7 +12,8 @@ const { getTunnelUrl } = require('./tunnel')
 
 const app         = express()
 const PORT        = 3001
-const PENDING_DIR = path.join(__dirname, '..', 'downloads')
+const BASE_DIR    = path.dirname(process.pkg ? process.execPath : path.join(__dirname, '..'))
+const PENDING_DIR = path.join(BASE_DIR, 'downloads')
 
 app.use(cors())
 app.use(express.json({ limit: '100mb' }))

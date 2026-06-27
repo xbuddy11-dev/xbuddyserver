@@ -2,8 +2,9 @@ const fs     = require('fs')
 const path   = require('path')
 const logger = require('../utils/logger')
 
-const TUNNEL_LOG  = process.env.TUNNEL_LOG || path.join(__dirname, '..', 'tunnel.log')
-const TUNNEL_CACHE = path.join(__dirname, '..', 'tunnel-url.txt')
+const BASE_DIR     = path.dirname(process.pkg ? process.execPath : path.join(__dirname, '..'))
+const TUNNEL_LOG   = process.env.TUNNEL_LOG || path.join(BASE_DIR, 'tunnel.log')
+const TUNNEL_CACHE = path.join(BASE_DIR, 'tunnel-url.txt')
 const GAS_URL     = 'https://script.google.com/macros/s/AKfycbzNC5W8nWK4eZrrSCFUEmL7rFU4dolWseJjRUIf-_d87AQNpW5anV3WHncAECb6ELoY/exec'
 
 let currentTunnelUrl = null
