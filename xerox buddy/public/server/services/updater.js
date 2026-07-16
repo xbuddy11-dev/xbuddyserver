@@ -1,13 +1,17 @@
 const { google } = require('googleapis')
+const path   = require('path')
 const logger = require('../utils/logger')
 const { getCredentialsPath } = require('../utils/credentialPath')
 const { sheetId: SPREADSHEET_ID } = require('../config')
 
 const SHEET_NAME = 'Sheet1'
+const BASE_DIR = process.pkg
+  ? path.dirname(process.execPath)
+  : path.dirname(path.resolve(require.main ? require.main.filename : __filename))
 
 function getAuth() {
   return new google.auth.GoogleAuth({
-    keyFile: getCredentialsPath(__dirname),
+    keyFile: getCredentialsPath(BASE_DIR),
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   })
 }
