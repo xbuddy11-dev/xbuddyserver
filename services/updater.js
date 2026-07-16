@@ -9,17 +9,29 @@ const BASE_DIR = process.pkg
   ? path.dirname(process.execPath)
   : path.dirname(path.resolve(require.main ? require.main.filename : __filename))
 
+let _credsMissing = false
+
 function getAuth() {
+  const keyFile = getCredentialsPath(BASE_DIR)
+  if (!require('fs').existsSync(keyFile)) {
+    if (!_credsMissing) {
+      _credsMissing = true
+      logger.warn('credentials.json not found — status updates disabled.')
+    }
+    return null
+  }
+  _credsMissing = false
   return new google.auth.GoogleAuth({
-    keyFile: getCredentialsPath(BASE_DIR),
+    keyFile,
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   })
 }
 
 // Update Print Status column K
 async function updatePrintStatus(rowIndex, status) {
+  const auth = getAuth()
+  if (!auth) return
   try {
-    const auth   = getAuth()
     const sheets = google.sheets({ version: 'v4', auth })
 
     await sheets.spreadsheets.values.update({
@@ -37,8 +49,9 @@ async function updatePrintStatus(rowIndex, status) {
 
 // Update PDF URL column M
 async function updatePdfUrl(rowIndex, pdfUrl) {
+  const auth = getAuth()
+  if (!auth) return
   try {
-    const auth   = getAuth()
     const sheets = google.sheets({ version: 'v4', auth })
 
     await sheets.spreadsheets.values.update({
@@ -56,8 +69,9 @@ async function updatePdfUrl(rowIndex, pdfUrl) {
 
 // Update Screenshot URL column I
 async function updateScreenshotUrl(rowIndex, url) {
+  const auth = getAuth()
+  if (!auth) return
   try {
-    const auth   = getAuth()
     const sheets = google.sheets({ version: 'v4', auth })
     await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
@@ -73,8 +87,9 @@ async function updateScreenshotUrl(rowIndex, url) {
 
 // Update Release Status column N
 async function updateReleaseStatus(rowIndex, status) {
+  const auth = getAuth()
+  if (!auth) return
   try {
-    const auth   = getAuth()
     const sheets = google.sheets({ version: 'v4', auth })
     await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,

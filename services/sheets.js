@@ -27,16 +27,29 @@ const BASE_DIR = process.pkg
   ? path.dirname(process.execPath)
   : path.dirname(path.resolve(require.main ? require.main.filename : __filename))
 
+let _credsMissing = false
+
 function getAuth() {
+  const keyFile = getCredentialsPath(BASE_DIR)
+  if (!require('fs').existsSync(keyFile)) {
+    if (!_credsMissing) {
+      logger.warn('credentials.json not found — Sheets API disabled. Using GAS fallback.')
+      logger.warn(`  Expected at: ${keyFile}`)
+      _credsMissing = true
+    }
+    return null
+  }
+  _credsMissing = false
   return new google.auth.GoogleAuth({
-    keyFile: getCredentialsPath(BASE_DIR),
+    keyFile,
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   })
 }
 
 async function getWaitingOrders() {
+  const auth = getAuth()
+  if (!auth) return []
   try {
-    const auth   = getAuth()
     const sheets = google.sheets({ version: 'v4', auth })
 
     const response = await sheets.spreadsheets.values.get({
@@ -101,10 +114,18 @@ async function getPdfUrlFromGas(orderId, fileName) {
 
 async function getOrderByIdForRelease(orderId) {
   const normalizedOrderId = normalizeOrderId(orderId)
-
+  const auth = getAuth()
+  if (!auth) {
+    // Go straight to GAS fallback
+    try {
+      const axios = require('axios')
+      const res = await axios.get(`${GAS_URL}?action=getOrderForRelease&orderId=${encodeURIComponent(normalizedOrderId)}`, { timeout: 8000 })
+      if (res.data?.orderId) return res.data
+    } catch {}
+    return null
+  }
   // Try direct Sheets API first
   try {
-    const auth   = getAuth()
     const sheets = google.sheets({ version: 'v4', auth })
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
@@ -179,8 +200,16 @@ function parseAmount(value) {
 }
 
 async function getAllOrders() {
+  const auth = getAuth()
+  if (!auth) {
+    try {
+      const axios = require('axios')
+      const res = await axios.get(`${GAS_URL}?action=listOrders`, { timeout: 8000 })
+      if (res.data?.orders) { logger.info('Using GAS fallback for getAllOrders'); return res.data.orders }
+    } catch {}
+    return []
+  }
   try {
-    const auth   = getAuth()
     const sheets = google.sheets({ version: 'v4', auth })
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,

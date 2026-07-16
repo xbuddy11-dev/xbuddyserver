@@ -1,10 +1,24 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getAgentEndpoints } from '../utils/agent'
+import { db } from '../utils/firebase'
+import { collection, query, where, getDocs } from 'firebase/firestore'
 
 const SESSION_KEY   = 'xbuddy_booth_auth'
 
 function isAuthed() { return sessionStorage.getItem(SESSION_KEY) === 'true' }
+
+import { db } from '../utils/firebase'
+import { collection, query, where, getDocs } from 'firebase/firestore'
+
+async function verifyPinFirestore(pin) {
+  try {
+    const snap = await getDocs(query(collection(db, 'shops'), where('boothPin', '==', pin)))
+    return !snap.empty
+  } catch {
+    return false
+  }
+}
 
 async function apiPost(path, body) {
   try {
@@ -15,6 +29,7 @@ async function apiPost(path, body) {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify(body),
+          signal:  AbortSignal.timeout(5000),
         })
         if (res.ok) return await res.json()
       } catch {}
@@ -37,12 +52,21 @@ function PinLogin({ onSuccess }) {
     e.preventDefault()
     if (pin.length < 4) return
     setLoading(true)
+    // Verify PIN via Firestore first (works on any device, no local agent needed)
+    const valid = await verifyPinFirestore(pin)
+    if (valid) {
+      sessionStorage.setItem(SESSION_KEY, 'true')
+      onSuccess()
+      setLoading(false)
+      return
+    }
+    // Fallback: try local agent (same-device booth)
     const res = await apiPost('/booth-login', { pin })
     if (res.success) {
       sessionStorage.setItem(SESSION_KEY, 'true')
       onSuccess()
     } else {
-      setError(res.error || 'Wrong PIN')
+      setError('Wrong PIN. Try again.')
       setPin('')
       setShake(true)
       setTimeout(() => setShake(false), 500)
