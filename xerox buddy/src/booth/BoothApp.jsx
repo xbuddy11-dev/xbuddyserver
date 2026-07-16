@@ -8,9 +8,6 @@ const SESSION_KEY   = 'xbuddy_booth_auth'
 
 function isAuthed() { return sessionStorage.getItem(SESSION_KEY) === 'true' }
 
-import { db } from '../utils/firebase'
-import { collection, query, where, getDocs } from 'firebase/firestore'
-
 async function verifyPinFirestore(pin) {
   try {
     const snap = await getDocs(query(collection(db, 'shops'), where('boothPin', '==', pin)))
