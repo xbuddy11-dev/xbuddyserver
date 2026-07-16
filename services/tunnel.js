@@ -5,7 +5,15 @@ const logger = require('../utils/logger')
 const BASE_DIR     = path.dirname(process.pkg ? process.execPath : path.join(__dirname, '..'))
 const TUNNEL_LOG   = process.env.TUNNEL_LOG || path.join(BASE_DIR, 'tunnel.log')
 const TUNNEL_CACHE = path.join(BASE_DIR, 'tunnel-url.txt')
-const GAS_URL     = 'https://script.google.com/macros/s/AKfycbzNC5W8nWK4eZrrSCFUEmL7rFU4dolWseJjRUIf-_d87AQNpW5anV3WHncAECb6ELoY/exec'
+
+function getGasUrl() {
+  try {
+    const config = require('../config')
+    return config.gasUrl
+  } catch {
+    return null
+  }
+}
 
 let currentTunnelUrl = null
 
@@ -33,9 +41,11 @@ function saveUrlToCache(url) {
 
 // Push tunnel URL to GAS so frontend can fetch it
 async function publishToGas(url) {
+  const gasUrl = getGasUrl()
+  if (!gasUrl) { logger.warn('No GAS URL in config — tunnel URL not published'); return }
   try {
     const axios = require('axios')
-    await axios.get(`${GAS_URL}?action=setTunnelUrl&url=${encodeURIComponent(url)}`)
+    await axios.get(`${gasUrl}?action=setTunnelUrl&url=${encodeURIComponent(url)}`)
     logger.success(`Tunnel URL published to GAS: ${url}`)
   } catch (err) {
     logger.warn(`Could not publish tunnel URL to GAS: ${err.message}`)
