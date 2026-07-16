@@ -1,10 +1,11 @@
 import { auth, getShopConfig } from './firebase'
 
 const LOCAL_API  = 'http://localhost:3001'
-const GITHUB_RAW = 'https://raw.githubusercontent.com/xbuddy11-dev/xbuddyserver/main/xerox%20buddy/public/tunnel-url.txt'
 
 let _tunnelUrl = null
+let _tunnelFetchedAt = 0
 let _shopConfig = null
+const TUNNEL_TTL = 30000
 
 async function getConfig() {
   if (_shopConfig) return _shopConfig
@@ -19,28 +20,30 @@ async function getGasUrl() {
 }
 
 async function getTunnelUrl() {
-  if (_tunnelUrl) return _tunnelUrl
+  const now = Date.now()
+  if (_tunnelUrl && now - _tunnelFetchedAt < TUNNEL_TTL) return _tunnelUrl
+
+  // 1. Try local agent
   try {
     const res = await fetch(`${LOCAL_API}/tunnel-url`, { signal: AbortSignal.timeout(2000) })
     if (res.ok) {
       const data = await res.json()
-      if (data?.url) { _tunnelUrl = data.url; return _tunnelUrl }
+      if (data?.url) { _tunnelUrl = data.url; _tunnelFetchedAt = now; return _tunnelUrl }
     }
   } catch {}
+
+  // 2. Try GAS (tunnel.js publishes URL here on every agent start)
   try {
-    const res = await fetch(`${GITHUB_RAW}?t=${Date.now()}`, { signal: AbortSignal.timeout(5000) })
-    if (res.ok) {
-      const url = (await res.text()).trim()
-      if (url.startsWith('https://')) { _tunnelUrl = url; return _tunnelUrl }
-    }
-  } catch {}
-  try {
-    const res = await fetch(`${await getGasUrl()}?action=getTunnelUrl`, { signal: AbortSignal.timeout(4000) })
+    const gasUrl = await getGasUrl()
+    const res = await fetch(`${gasUrl}?action=getTunnelUrl`, { signal: AbortSignal.timeout(5000) })
     if (res.ok) {
       const data = await res.json()
-      if (data?.url) { _tunnelUrl = data.url; return _tunnelUrl }
+      if (data?.url?.startsWith('https://')) {
+        _tunnelUrl = data.url; _tunnelFetchedAt = now; return _tunnelUrl
+      }
     }
   } catch {}
+
   return null
 }
 

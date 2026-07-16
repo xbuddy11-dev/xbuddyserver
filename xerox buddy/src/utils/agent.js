@@ -1,7 +1,9 @@
 const LOCAL_API = 'http://localhost:3001'
-const GITHUB_RAW = 'https://raw.githubusercontent.com/xbuddy11-dev/xbuddyserver/main/xerox%20buddy/public/tunnel-url.txt'
+const GAS_URL   = 'https://script.google.com/macros/s/AKfycbzEGtssDA6cpNQ2Wg-TexwMFq4fhVeguNzp3EiAUd8W5aTZ4bgYscvGg2_7Ez2z2utr/exec'
 
 let _tunnelUrl = null
+let _lastFetch = 0
+const CACHE_TTL = 30000 // re-fetch tunnel URL every 30s
 
 export function isLocalPage() {
   const hostname = typeof window !== 'undefined' ? window.location.hostname : ''
@@ -9,26 +11,25 @@ export function isLocalPage() {
 }
 
 export async function getTunnelUrl() {
-  if (_tunnelUrl) return _tunnelUrl
+  const now = Date.now()
+  if (_tunnelUrl && now - _lastFetch < CACHE_TTL) return _tunnelUrl
 
+  // 1. Try local agent (same-device)
   try {
     const res = await fetch(`${LOCAL_API}/tunnel-url`, { signal: AbortSignal.timeout(2000) })
     if (res.ok) {
       const data = await res.json()
-      if (data?.url) {
-        _tunnelUrl = data.url
-        return _tunnelUrl
-      }
+      if (data?.url) { _tunnelUrl = data.url; _lastFetch = now; return _tunnelUrl }
     }
   } catch {}
 
+  // 2. Try GAS (tunnel.js publishes URL here on every start)
   try {
-    const res = await fetch(`${GITHUB_RAW}?t=${Date.now()}`, { signal: AbortSignal.timeout(5000) })
+    const res = await fetch(`${GAS_URL}?action=getTunnelUrl`, { signal: AbortSignal.timeout(5000) })
     if (res.ok) {
-      const url = (await res.text()).trim()
-      if (url.startsWith('https://')) {
-        _tunnelUrl = url
-        return _tunnelUrl
+      const data = await res.json()
+      if (data?.url?.startsWith('https://')) {
+        _tunnelUrl = data.url; _lastFetch = now; return _tunnelUrl
       }
     }
   } catch {}
