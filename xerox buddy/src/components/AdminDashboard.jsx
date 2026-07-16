@@ -214,10 +214,11 @@ EVERY DAY: Just double-click START.bat`)
       if (cloudflaredRes.ok) zip.file('cloudflared.exe', await cloudflaredRes.arrayBuffer())
 
       // Fetch server source files
-      const serverFiles = ['index.js', 'config.js', 'package.json',
+      const serverFiles = ['index.js', 'config.js', 'package.json', 'START.bat', 'SETUP.bat',
         'services/downloader.js', 'services/driveUploader.js', 'services/localServer.js',
         'services/printer.js', 'services/sheets.js', 'services/tunnel.js', 'services/updater.js',
-        'utils/logger.js', 'utils/credentialPath.js']
+        'utils/logger.js', 'utils/credentialPath.js',
+        'wizard/server.js', 'wizard/index.html']
       for (const f of serverFiles) {
         const res = await fetch(`/server/${f}`)
         if (res.ok) zip.file(f, await res.text())

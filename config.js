@@ -1,34 +1,24 @@
 const fs   = require('fs')
 const path = require('path')
 
-function findConfigPath() {
-  const candidates = []
+const BASE_DIR = process.pkg
+  ? path.dirname(process.execPath)
+  : path.dirname(path.resolve(require.main ? require.main.filename : __filename))
 
-  if (process.pkg) {
-    candidates.push(path.dirname(process.execPath))
-  }
+// New structure: config/shop-config.json — fallback to root for legacy
+const candidates = [
+  path.join(BASE_DIR, 'config', 'shop-config.json'),
+  path.join(BASE_DIR, 'shop-config.json'),
+  path.join(process.cwd(), 'config', 'shop-config.json'),
+  path.join(process.cwd(), 'shop-config.json'),
+]
 
-  if (require.main && require.main.filename) {
-    candidates.push(path.dirname(path.resolve(require.main.filename)))
-  }
+const configPath = candidates.find(p => fs.existsSync(p))
 
-  candidates.push(process.cwd())
-  candidates.push(path.resolve(__dirname))
-
-  for (const dir of candidates) {
-    const configPath = path.join(dir, 'shop-config.json')
-    if (fs.existsSync(configPath)) return configPath
-  }
-
-  return null
-}
-
-const CONFIG_CACHE = findConfigPath()
-
-if (!CONFIG_CACHE) {
+if (!configPath) {
   console.error('\n  ERROR: shop-config.json not found!')
-  console.error('  Please run setup first.\n')
+  console.error('  Run XBuddy to complete setup first.\n')
   process.exit(1)
 }
 
-module.exports = JSON.parse(fs.readFileSync(CONFIG_CACHE, 'utf8'))
+module.exports = JSON.parse(fs.readFileSync(configPath, 'utf8'))
